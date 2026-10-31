@@ -1,0 +1,65 @@
+name: update-cask
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-cask
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reads the public RouteBar releases anonymously. The workflow token is
+      # scoped to this repository and cannot see another one.
+      - name: Resolve the latest RouteBar release
+        id: release
+        run: |
+          set -euo pipefail
+          if ! json=$(curl -fsSL "https://api.github.com/repos/spilneo/RouteBar/releases/latest" 2>/dev/null); then
+            echo "No published RouteBar release yet. Nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tag=$(printf '%s' "$json" | jq -r '.tag_name')
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          { echo "skip=false"; echo "tag=$tag"; } >> "$GITHUB_OUTPUT"
+
+      # The generator lives next to the app, so the cask format has one source of truth.
+      - name: Regenerate Casks/routebar.rb
+        if: steps.release.outputs.skip == 'false'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/update-cask.sh \
+            "https://raw.githubusercontent.com/spilneo/RouteBar/${TAG}/scripts/update-cask.sh"
+          sh /tmp/update-cask.sh "$TAG" Casks/routebar.rb
+          cat Casks/routebar.rb
+
+      - name: Commit and push
+        if: steps.release.outputs.skip == 'false'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/routebar.rb
+          if git diff --cached --quiet; then
+            echo "Cask already up to date."
+            exit 0
+          fi
+          git commit -m "routebar ${TAG}"
+          git push
