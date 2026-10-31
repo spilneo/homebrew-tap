@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 cask "routebar" do
-  version "1.5.1"
-  sha256 "cc3cef8a0c36725c7df6ad22eb8e6e6460df8497572243fd10ea74de06ad188e"
+  version "1.6.0"
+  sha256 "c7a525337180a4975a9726024a71740b6fb378e23cdbd26d258a309d9e07dd86"
 
   url "https://github.com/spilneo/RouteBar/releases/download/v#{version}/RouteBar.zip"
   name "RouteBar"
