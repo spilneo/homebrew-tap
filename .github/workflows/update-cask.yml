@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSL -o /tmp/update-cask.sh \
-            "https://raw.githubusercontent.com/spilneo/RouteBar/${TAG}/scripts/update-cask.sh"
+            "https://raw.githubusercontent.com/spilneo/RouteBar/main/scripts/update-cask.sh"
           sh /tmp/update-cask.sh "$TAG" Casks/routebar.rb
           cat Casks/routebar.rb
 
